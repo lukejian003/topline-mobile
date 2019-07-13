@@ -4,6 +4,7 @@
 
 import request from '@/utils/request'
 
+// 用户登录
 export const login = ({ mobile, code }) => {
   return request({
     method: 'POST',

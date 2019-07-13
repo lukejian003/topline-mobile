@@ -9,7 +9,7 @@
           <van-button slot="button" size="small" type="primary">发送验证码</van-button>
         </van-field>
       </van-cell-group>
-      <van-button type="info" @click="handleLogin">登录</van-button>
+      <van-button type="info" @click="handleLogin" :loading="loginLoading" loading-text="登录中...">登录</van-button>
     </form>
   </div>
 </template>
@@ -22,17 +22,25 @@ export default {
     return {
       user: {
         mobile: '17777318254',
-        code: '123456'
-      }
+        code: '246810'
+      },
+      loginLoading: false
     }
   },
   methods: {
     async handleLogin () {
+      this.loginLoading = true
       try {
         const data = await login(this.user)
-        console.log(data)
+        this.$store.commit('setUser', data)
+        this.loginLoading = false
+        this.$router.push({
+          name: 'home'
+        })
       } catch (err) {
         console.log(err)
+        this.loginLoading = false
+        this.$toast.fail('登录失败！')
       }
     }
   }
