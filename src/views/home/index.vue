@@ -1,40 +1,70 @@
 <template>
-  <div>
-    <div class="home">
-      <van-nav-bar title="首页" fixed />
-      <van-tabs class="channel-tabs" v-model="activeChannelIndex">
-        <van-tab v-for="channelItem in channels" :key="channelItem.id" :title="channelItem.name">
-          <van-pull-refresh v-model="isLoading" @refresh="onRefresh">
-            <van-list v-model="channelItem.upPullLoading" :finished="channelItem.upPullFinished" finished-text="没有更多了" @load="onLoad">
-              <van-cell v-for="articleItem in channelItem.articles" :key="articleItem.art_id" :title="articleItem.title" />
-            </van-list>
-          </van-pull-refresh>
-        </van-tab>
-      </van-tabs>
-    </div>
+  <div class="home">
+    <van-nav-bar title="首页" fixed />
+    <van-tabs class="channel-tabs" v-model="activeChannelIndex">
+      <div slot="nav-right">
+        <van-icon name="wap-nav" class="wap-nav" @click="isChannelShow = true"/>
+      </div>
+      <van-tab v-for="channelItem in channels" :key="channelItem.id" :title="channelItem.name">
+        <van-pull-refresh
+          v-model="channelItem.downPullLoading"
+          @refresh="onRefresh"
+          :success-text="channelItem.downPullSuccessText"
+          :success-duration="1000"
+        >
+          <van-list
+            v-model="channelItem.upPullLoading"
+            :finished="channelItem.upPullFinished"
+            finished-text="没有更多了"
+            @load="onLoad"
+          >
+            <van-cell
+              v-for="articleItem in channelItem.articles"
+              :key="articleItem.art_id"
+              :title="articleItem.title"
+            />
+          </van-list>
+        </van-pull-refresh>
+      </van-tab>
+    </van-tabs>
+    <!-- 频道管理 -->
+    <HomeChannel v-model="isChannelShow" :user-channels="channels" :acitve-index="activeChannelIndex"/>
+    <!-- 频道管理 -->
   </div>
 </template>
 
 <script>
 import { getUserChannels } from '@/api/channel'
 import { getArticles } from '@/api/article'
-
+import HomeChannel from './components/channel'
 export default {
   name: 'HomeIndex',
+  components: {
+    HomeChannel
+  },
   data () {
     return {
       activeChannelIndex: 0,
-      list: [],
-      loading: false,
-      finished: false,
-      isLoading: false,
-      channels: [] // 频道列表数据
+      channels: [], // 频道列表数据
+      isChannelShow: false // 控制频道
     }
   },
   computed: {
     // 当前激活的频道
     activeChannel () {
       return this.channels[this.activeChannelIndex]
+    }
+  },
+  watch: {
+    // 监视容器中的user用户
+    // 由于路由缓存了，这里监视用户的登录状态，如果登陆了，则重新加载用户的频道列表
+    async '$store.state.user' () {
+      this.loadChannels()
+      // 频道数据改变，重新加载当前激活频道的数据
+      this.activeChannel.upPullLoading = true
+      await this.onLoad()
+      // this.activeChannel.upPullLoading = true
+      // await this.onLoad()
     }
   },
   created () {
@@ -91,8 +121,26 @@ export default {
       this.activeChannel.upPullLoading = false
     },
     // 下拉刷新
-    onRefresh () {
-      console.log('onRefresh')
+    async onRefresh () {
+      const { activeChannel } = this
+      // 备份加载下一页数据的时间戳
+      // const timestamp = activeChannel.timestamp
+      activeChannel.timestamp = Date.now()
+      const data = await this.loadAritcles()
+      if (data.results.length) {
+        // 重置最新数据列表
+        activeChannel.articles = data.results
+        // 重置后，数据中的pre_timestamp就是下一页的时间戳
+        activeChannel.timestamp = data.pre_timestamp
+        activeChannel.downPullSuccessText = '更新成功'
+        // 当下拉刷新数据无法满足一屏，使用onLoading
+        this.onLoad()
+      } else {
+        // 没有最新数据，提示已是最新数据
+        activeChannel.downPullSuccessText = '已是最新数据'
+      }
+      // 下拉刷新结束，取消loading状态
+      activeChannel.downPullLoading = false
     },
     async loadAritcles () {
       const { id: channelId, timestamp } = this.activeChannel
@@ -111,9 +159,18 @@ export default {
 .channel-tabs {
   margin-bottom: 50px;
 }
+.wap-nav {
+  position: fixed;
+  right: 0;
+  padding: 10px;
+  background-color: #fff;
+}
+
 .channel-tabs /deep/ .van-tabs__wrap {
   position: fixed;
   top: 46px;
+  margin-right: 44px;
+  box-shadow: 0 -0.5px 0.1px #000;
 }
 .channel-tabs /deep/ .van-tabs__content {
   margin-top: 50px;
