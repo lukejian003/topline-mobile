@@ -3,7 +3,7 @@
     <van-nav-bar title="首页" fixed />
     <van-tabs class="channel-tabs" v-model="activeChannelIndex">
       <div slot="nav-right">
-        <van-icon name="wap-nav" class="wap-nav" @click="isChannelShow = true"/>
+        <van-icon name="wap-nav" class="wap-nav" @click="isChannelShow = true" />
       </div>
       <van-tab v-for="channelItem in channels" :key="channelItem.id" :title="channelItem.name">
         <van-pull-refresh
@@ -28,7 +28,11 @@
       </van-tab>
     </van-tabs>
     <!-- 频道管理 -->
-    <HomeChannel v-model="isChannelShow" :user-channels="channels" :acitve-index="activeChannelIndex"/>
+    <HomeChannel
+      v-model="isChannelShow"
+      :user-channels="channels"
+      :acitve-index.sync="activeChannelIndex"
+    />
     <!-- 频道管理 -->
   </div>
 </template>
@@ -78,9 +82,10 @@ export default {
         const data = await getUserChannels()
         channels = data.channels
       } else {
+        // 获取本地存储中的频道列表
         const loadChannels = window.localStorage.getItem('channels')
         if (loadChannels) {
-          channels = loadChannels
+          channels = JSON.parse(loadChannels)
         } else {
           const data = await getUserChannels()
           channels = data.channels
