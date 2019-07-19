@@ -1,6 +1,7 @@
 <template>
   <div class="home">
     <van-nav-bar title="首页" fixed />
+    <!-- 内容列表 -->
     <van-tabs class="channel-tabs" v-model="activeChannelIndex">
       <div slot="nav-right">
         <van-icon name="wap-nav" class="wap-nav" @click="isChannelShow = true" />
@@ -22,18 +23,36 @@
               v-for="articleItem in channelItem.articles"
               :key="articleItem.art_id"
               :title="articleItem.title"
-            />
+            >
+              <div slot="label">
+                <template v-if="articleItem.cover.type">
+                  <van-grid :border="false" :column-num="3">
+                    <van-grid-item v-for="(img,index) in articleItem.cover.images" :key="index">
+                      <van-image width="2.5rem" height="2.5rem" fit="cover" lazy-load :src="img" />
+                    </van-grid-item>
+                  </van-grid>
+                </template>
+                <p>
+                  <span>{{articleItem.aut_name}}</span>
+                  &nbsp;
+                  <span>{{articleItem.comm_count}}评论</span>
+                  &nbsp;
+                  <span>{{articleItem.pubdate}}</span>
+                </p>
+              </div>
+            </van-cell>
           </van-list>
         </van-pull-refresh>
       </van-tab>
     </van-tabs>
+    <!-- /内容列表 -->
     <!-- 频道管理 -->
     <HomeChannel
       v-model="isChannelShow"
       :user-channels="channels"
       :acitve-index.sync="activeChannelIndex"
     />
-    <!-- 频道管理 -->
+    <!-- /频道管理 -->
   </div>
 </template>
 
